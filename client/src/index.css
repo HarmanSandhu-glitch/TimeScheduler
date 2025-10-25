@@ -1,0 +1,64 @@
+/* Import Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom base styles */
+body {
+  @apply bg-background dark:bg-dark-background text-on-background dark:text-dark-on-background;
+  font-family: 'Roboto', sans-serif; /* Recommended Material font */
+  -webkit-font-smoothing: antialiased; /* Smoother fonts */
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optional: Style scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-surface-variant/50 dark:bg-dark-surface-variant/50 rounded-full;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/50 dark:bg-dark-primary/50 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+   @apply bg-primary/70 dark:bg-dark-primary/70;
+}
+
+
+/* Keep your custom components layer if you defined any */
+@layer components {
+  .input-base {
+    @apply mt-1 block w-full px-4 py-3 border border-outline dark:border-dark-outline rounded-xl shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-dark-primary focus:border-transparent sm:text-sm bg-surface-variant/30 dark:bg-dark-surface-variant/30 text-on-surface dark:text-dark-on-surface transition;
+  }
+  .label-base {
+     @apply block text-sm font-medium text-on-surface-variant dark:text-dark-on-surface-variant mb-1;
+  }
+   .button-primary {
+     @apply inline-flex justify-center items-center py-3 px-6 border border-transparent shadow-sm text-sm font-medium rounded-full text-on-primary dark:text-dark-on-primary bg-primary dark:bg-dark-primary hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-dark-primary disabled:opacity-50 transition;
+   }
+   .button-secondary {
+       @apply inline-flex justify-center items-center py-3 px-6 border border-transparent shadow-sm text-sm font-medium rounded-full text-on-secondary-container dark:text-dark-on-secondary-container bg-secondary-container dark:bg-dark-secondary-container hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary dark:focus:ring-dark-secondary disabled:opacity-50 transition;
+   }
+   .button-text {
+       @apply inline-flex justify-center items-center px-5 py-2.5 text-sm font-medium text-primary dark:text-dark-primary rounded-full hover:bg-primary/10 dark:hover:bg-dark-primary/10 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-dark-primary focus:ring-offset-1 focus:ring-offset-surface dark:focus:ring-offset-dark-surface transition disabled:opacity-50;
+   }
+   .button-icon {
+       @apply p-2 rounded-full text-on-surface-variant dark:text-dark-on-surface-variant hover:bg-on-surface/10 dark:hover:bg-dark-on-surface/10 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-dark-primary focus:ring-offset-1 focus:ring-offset-surface dark:focus:ring-offset-dark-surface transition disabled:opacity-50;
+   }
+   .card-base {
+       @apply bg-surface dark:bg-dark-surface p-6 rounded-3xl shadow-lg;
+   }
+   .card-container {
+      @apply bg-surface-variant dark:bg-dark-surface-variant p-6 rounded-3xl shadow-sm;
+   }
+    /* Simple fade-in animation utility */
+   .animate-fade-in {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+}
