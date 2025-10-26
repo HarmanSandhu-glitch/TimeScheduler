@@ -3,7 +3,6 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:3333/api/tasks/';
 
-// Helper function to get auth header
 const getAuthHeader = (thunkAPI) => {
     const token = thunkAPI.getState().auth.token;
     if (token) {
@@ -12,7 +11,6 @@ const getAuthHeader = (thunkAPI) => {
     return {};
 };
 
-// Create new task
 export const createTask = createAsyncThunk(
     'tasks/create',
     async (taskData, thunkAPI) => {
@@ -30,7 +28,6 @@ export const createTask = createAsyncThunk(
     }
 );
 
-// Get user tasks
 export const getTasks = createAsyncThunk(
     'tasks/getAll',
     async (userId, thunkAPI) => {
@@ -48,7 +45,6 @@ export const getTasks = createAsyncThunk(
     }
 );
 
-// Update task
 export const updateTask = createAsyncThunk(
     'tasks/update',
     async ({ taskId, taskData }, thunkAPI) => {
@@ -66,7 +62,6 @@ export const updateTask = createAsyncThunk(
     }
 );
 
-// Delete task
 export const deleteTask = createAsyncThunk(
     'tasks/delete',
     async (taskId, thunkAPI) => {
@@ -150,13 +145,9 @@ const taskSlice = createSlice({
             .addCase(deleteTask.fulfilled, (state, action) => {
                 state.isLoading = false;
                 state.isSuccess = true;
-                // --- FIX IS HERE ---
-                // The server returns a success message, not the task.
-                // The original taskId is in action.meta.arg
                 state.tasks = state.tasks.filter(
                     (task) => task._id !== action.meta.arg
                 );
-                // --- END FIX ---
             })
             .addCase(deleteTask.rejected, (state, action) => {
                 state.isLoading = false;

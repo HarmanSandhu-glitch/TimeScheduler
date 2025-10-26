@@ -1,8 +1,6 @@
 import Session from '../models/sessionModel.js';
 import User from '../models/userModel.js';
-import Task from '../models/taskModel.js'; // Keep Task import if needed elsewhere
-
-// --- Helper Functions (keep these) ---
+import Task from '../models/taskModel.js';
 const timeToMinutes = (timeString) => {
     const [hours, minutes] = timeString.split(':').map(Number);
     return hours * 60 + minutes;
@@ -13,11 +11,7 @@ const minutesToTime = (totalMinutes) => {
     const minutes = totalMinutes % 60;
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 };
-// --- End Helper Functions ---
-
-// --- Existing Controller Functions (keep these) ---
 export const createCurrentDateSessions = async (req, res) => {
-    // ... existing code ...
     const userId = req.user.id;
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
@@ -28,21 +22,19 @@ export const createCurrentDateSessions = async (req, res) => {
         });
 
         if (existingSession) {
-            // Check if sessions for today already exist using findOne
             return res.status(200).json({ success: true, message: 'Sessions for today already created.' });
         }
-
-        const user = await User.findById(userId); // Fetch user details
+        const user = await User.findById(userId); 
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        const { userDayStartTime, userDayEndTime, userSessionSize } = user; // Get scheduling settings from user model
+        const { userDayStartTime, userDayEndTime, userSessionSize } = user; 
 
         const startMinutes = timeToMinutes(userDayStartTime);
         const endMinutes = timeToMinutes(userDayEndTime);
-        const sessionDuration = userSessionSize; // in minutes
+        const sessionDuration = userSessionSize; 
 
         if (endMinutes <= startMinutes) {
             return res.status(400).json({ success: false, message: 'End time must be after start time' });
@@ -58,7 +50,6 @@ export const createCurrentDateSessions = async (req, res) => {
         const sessionsToCreate = [];
         let currentSessionStart = startMinutes;
 
-        // Loop to generate session time slots
         for (let i = 0; i < numberOfSessions; i++) {
             const sessionStartTime = minutesToTime(currentSessionStart);
             const sessionEndTime = minutesToTime(currentSessionStart + sessionDuration);
@@ -67,16 +58,15 @@ export const createCurrentDateSessions = async (req, res) => {
                 sessionDate: today,
                 sessionStartTime,
                 sessionEndTime,
-                sessionTask: null, // Default task to null
-                sessionStatus: 'Pending', // Default status
-                sessionSpecialNote: '', // Default note
-                sessionUser: userId, // Link session to user
+                sessionTask: null,
+                sessionStatus: 'Pending',
+                sessionSpecialNote: '',
+                sessionUser: userId,
             });
             currentSessionStart += sessionDuration;
         }
 
-        const createdSessions = await Session.insertMany(sessionsToCreate); // Bulk insert sessions
-
+        const createdSessions = await Session.insertMany(sessionsToCreate);
         res.status(201).json({ success: true, message: 'Sessions created successfully', sessions: createdSessions });
 
     } catch (error) {
@@ -86,7 +76,6 @@ export const createCurrentDateSessions = async (req, res) => {
 };
 
 export const updateSessionStatus = async (req, res) => {
-    // ... existing code ...
     const { sessionId } = req.params;
     const { status } = req.body;
     console.log("Updating session status:", status, "with sessionId:", sessionId);
@@ -98,7 +87,7 @@ export const updateSessionStatus = async (req, res) => {
         const session = await Session.findByIdAndUpdate(
             sessionId,
             { sessionStatus: status },
-            { new: true } // Return the updated document
+            { new: true }
         );
 
         if (!session) {
@@ -113,21 +102,17 @@ export const updateSessionStatus = async (req, res) => {
 };
 
 export const updateSessionTask = async (req, res) => {
-    // ... existing code ...
     const { sessionId } = req.params;
     const { taskId } = req.body;
     try {
         if (taskId) {
-            // Check if the provided taskId corresponds to an existing task
             const taskExists = await Task.findById(taskId);
             if (!taskExists) {
                 return res.status(404).json({ success: false, message: 'Task not found' });
             }
         }
-        // Update the sessionTask field
         const session = await Session.findByIdAndUpdate(
             sessionId,
-            // Allow setting taskId to null to unassign
             { sessionTask: taskId || null },
             { new: true }
         );
@@ -144,14 +129,12 @@ export const updateSessionTask = async (req, res) => {
 };
 
 export const updateSpecialNote = async (req, res) => {
-    // ... existing code ...
     const { sessionId } = req.params;
-    const { note } = req.body; // Expecting { "note": "new note content" }
+    const { note } = req.body; 
 
     try {
         const session = await Session.findByIdAndUpdate(
             sessionId,
-            // Update the sessionSpecialNote field, allow setting empty string
             { sessionSpecialNote: note || '' },
             { new: true }
         );
@@ -168,16 +151,13 @@ export const updateSpecialNote = async (req, res) => {
 };
 
 export const getSessionsByDate = async (req, res) => {
-    // ... existing code ...
-    const userId = req.user.id; // User ID from protect middleware
+    const userId = req.user.id; 
     const { date } = req.params;
     try {
         const startOfDay = new Date(date);
         startOfDay.setUTCHours(0, 0, 0, 0);
         const endOfDay = new Date(date);
         endOfDay.setUTCHours(23, 59, 59, 999);
-
-        // Find sessions for the specific user and date range
         const sessions = await Session.find({
             sessionUser: userId,
             sessionDate: {
@@ -185,50 +165,44 @@ export const getSessionsByDate = async (req, res) => {
                 $lte: endOfDay,
             },
         })
-            .populate('sessionTask'); // Populate task details
-
+            .populate('sessionTask');
         res.status(200).json({ success: true, sessions });
     } catch (error) {
         console.error('Error getting sessions by date:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
-
-// --- NEW IMPLEMENTATION for getSessionsByRange ---
 export const getSessionsByRange = async (req, res) => {
-    const userId = req.user.id; // From protect middleware
-    const { startDate, endDate } = req.query; // Expecting YYYY-MM-DD format
+    const userId = req.user.id;
+    const { startDate, endDate } = req.query;
 
-    // Validate input
     if (!startDate || !endDate) {
         return res.status(400).json({ success: false, message: 'Both startDate and endDate query parameters are required' });
     }
 
     try {
-        // Parse dates and set time boundaries
         const start = new Date(startDate);
         if (isNaN(start.getTime())) {
             return res.status(400).json({ success: false, message: 'Invalid startDate format. Use YYYY-MM-DD.' });
         }
-        start.setUTCHours(0, 0, 0, 0); // Start of the start day in UTC
+        start.setUTCHours(0, 0, 0, 0);
 
         const end = new Date(endDate);
         if (isNaN(end.getTime())) {
             return res.status(400).json({ success: false, message: 'Invalid endDate format. Use YYYY-MM-DD.' });
         }
-        end.setUTCHours(23, 59, 59, 999); // End of the end day in UTC
+        end.setUTCHours(23, 59, 59, 999);
 
-        // Query the database
         const sessions = await Session.find({
-            sessionUser: userId, // Filter by the logged-in user
-            sessionDate: { // Filter by date range
+            sessionUser: userId,
+            sessionDate: {
                 $gte: start,
                 $lte: end,
             },
         })
-            .select('sessionDate sessionStatus') // Select only needed fields for the charts
-            .sort({ sessionDate: 1 }) // Optional: sort by date
-            .lean(); // Use lean() for better performance as we only read data
+            .select('sessionDate sessionStatus')
+            .sort({ sessionDate: 1 })
+            .lean();
 
         res.status(200).json({ success: true, sessions });
 
@@ -237,4 +211,3 @@ export const getSessionsByRange = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error while fetching sessions by range.' });
     }
 };
-// --- END IMPLEMENTATION ---

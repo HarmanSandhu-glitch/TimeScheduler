@@ -3,7 +3,6 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:3333/api/sessions/';
 
-// Helper function to get auth header
 const getAuthHeader = (thunkAPI) => {
     const token = thunkAPI.getState().auth.token;
     if (token) {
@@ -12,7 +11,6 @@ const getAuthHeader = (thunkAPI) => {
     return {};
 };
 
-// Create daily sessions
 export const createDailySessions = createAsyncThunk(
     'sessions/createDaily',
     async (sessionDateData, thunkAPI) => {
@@ -30,7 +28,6 @@ export const createDailySessions = createAsyncThunk(
     }
 );
 
-// Get sessions by date
 export const getSessionsByDate = createAsyncThunk(
     'sessions/getByDate',
     async (date, thunkAPI) => {
@@ -48,7 +45,6 @@ export const getSessionsByDate = createAsyncThunk(
     }
 );
 
-// Get sessions by status
 export const getSessionsByStatus = createAsyncThunk(
     'sessions/getByStatus',
     async (status, thunkAPI) => {
@@ -65,8 +61,6 @@ export const getSessionsByStatus = createAsyncThunk(
         }
     }
 );
-
-// Update session status
 export const updateSessionStatus = createAsyncThunk(
     'sessions/updateStatus',
     async ({ sessionId, status }, thunkAPI) => {
@@ -83,8 +77,6 @@ export const updateSessionStatus = createAsyncThunk(
         }
     }
 );
-
-// Update session task
 export const updateSessionTask = createAsyncThunk(
     'sessions/updateTask',
     async ({ sessionId, taskId }, thunkAPI) => {
@@ -101,8 +93,6 @@ export const updateSessionTask = createAsyncThunk(
         }
     }
 );
-
-// Update special note
 export const updateSpecialNote = createAsyncThunk(
     'sessions/updateNote',
     async ({ sessionId, note }, thunkAPI) => {
@@ -125,9 +115,8 @@ export const getSessionsByRange = createAsyncThunk(
     async ({ startDate, endDate }, thunkAPI) => {
         try {
             const config = getAuthHeader(thunkAPI);
-            // Pass dates as query parameters
             const response = await axios.get(API_URL + `range?startDate=${startDate}&endDate=${endDate}`, config);
-            return response.data; // Expects { success: true, sessions: [...] }
+            return response.data;
         } catch (error) {
             const message =
                 (error.response?.data?.message) || error.message || error.toString();
@@ -138,20 +127,18 @@ export const getSessionsByRange = createAsyncThunk(
 const sessionSlice = createSlice({
     name: 'sessions',
     initialState: {
-        sessions: [], // Holds sessions for the current day view
-        rangedSessions: [], // Holds sessions for the weekly/monthly charts
+        sessions: [], 
+        rangedSessions: [],
         isLoading: false,
-        isRangeLoading: false, // Separate loading state for range fetching
+        isRangeLoading: false,
         isSuccess: false,
         isError: false,
         message: '',
-        rangeError: '', // Separate error message for range fetching
+        rangeError: '', 
     },
     reducers: {
         reset: (state) => {
-            // Reset everything *except* maybe rangedSessions if you want to keep them cached
             state.sessions = [];
-            // state.rangedSessions = []; // Optionally reset this too
             state.isLoading = false;
             state.isRangeLoading = false;
             state.isSuccess = false;
@@ -159,33 +146,28 @@ const sessionSlice = createSlice({
             state.message = '';
             state.rangeError = '';
         },
-        // Keep resetSessions if you still need it specifically
         resetSessions: (state) => {
             state.isLoading = false;
             state.isSuccess = false;
             state.isError = false;
             state.message = '';
-            // Maybe reset daily sessions here?
             state.sessions = [];
         },
     },
     extraReducers: (builder) => {
         builder
-            // --- Existing cases for createDaily, getByDate, updates ---
             .addCase(createDailySessions.pending, (state) => { state.isLoading = true; })
-            .addCase(createDailySessions.fulfilled, (state, action) => { /* ... */ state.isLoading = false; state.isSuccess = true; /* ... */ })
-            .addCase(createDailySessions.rejected, (state, action) => { /* ... */ state.isLoading = false; state.isError = true; /* ... */ })
+            .addCase(createDailySessions.fulfilled, (state, action) => { state.isLoading = false; state.isSuccess = true; })
+            .addCase(createDailySessions.rejected, (state, action) => { state.isLoading = false; state.isError = true; })
             .addCase(getSessionsByDate.pending, (state) => { state.isLoading = true; })
             .addCase(getSessionsByDate.fulfilled, (state, action) => { state.isLoading = false; state.isSuccess = true; state.sessions = action.payload.sessions; })
-            .addCase(getSessionsByDate.rejected, (state, action) => { /* ... */ state.isLoading = false; state.isError = true; /* ... */ })
-            // ... cases for updateStatus, updateTask, updateNote ...
+            .addCase(getSessionsByDate.rejected, (state, action) => { state.isLoading = false; state.isError = true; })
             .addCase(updateSessionStatus.pending, (state) => {
                 state.isLoading = true;
             })
             .addCase(updateSessionStatus.fulfilled, (state, action) => {
                 state.isLoading = false;
                 state.isSuccess = true;
-                // Update in both arrays if the session exists there
                 state.sessions = state.sessions.map((session) => 
                     session._id === action.payload.session._id ? action.payload.session : session
                 );
@@ -198,14 +180,12 @@ const sessionSlice = createSlice({
                 state.isError = true;
                 state.message = action.payload;
             })
-            // Update session task cases
             .addCase(updateSessionTask.pending, (state) => {
                 state.isLoading = true;
             })
             .addCase(updateSessionTask.fulfilled, (state, action) => {
                 state.isLoading = false;
                 state.isSuccess = true;
-                // Update the session in the state immediately
                 state.sessions = state.sessions.map((session) => 
                     session._id === action.payload.session._id ? action.payload.session : session
                 );
@@ -218,14 +198,12 @@ const sessionSlice = createSlice({
                 state.isError = true;
                 state.message = action.payload;
             })
-            // Update special note cases
             .addCase(updateSpecialNote.pending, (state) => {
                 state.isLoading = true;
             })
             .addCase(updateSpecialNote.fulfilled, (state, action) => {
                 state.isLoading = false;
                 state.isSuccess = true;
-                // Update the session in the state immediately
                 state.sessions = state.sessions.map((session) => 
                     session._id === action.payload.session._id ? action.payload.session : session
                 );
@@ -238,20 +216,18 @@ const sessionSlice = createSlice({
                 state.isError = true;
                 state.message = action.payload;
             })
-
-            // --- NEW Cases for getSessionsByRange ---
             .addCase(getSessionsByRange.pending, (state) => {
                 state.isRangeLoading = true;
                 state.rangeError = '';
             })
             .addCase(getSessionsByRange.fulfilled, (state, action) => {
                 state.isRangeLoading = false;
-                state.rangedSessions = action.payload.sessions; // Store fetched range data
+                state.rangedSessions = action.payload.sessions;
             })
             .addCase(getSessionsByRange.rejected, (state, action) => {
                 state.isRangeLoading = false;
                 state.rangeError = action.payload;
-                state.rangedSessions = []; // Clear on error
+                state.rangedSessions = [];
             });
     },
 });

@@ -20,13 +20,11 @@ const taskSchema = new mongoose.Schema({
         enum: ['Low', 'Medium', 'High'],
         default: 'Medium',
     },
-    // --- ADD THIS ---
     taskStatus: {
         type: String,
         enum: ['pending', 'in-progress', 'completed'],
         default: 'pending',
     },
-    // --- END ADD ---
     taskUser: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
