@@ -37,22 +37,34 @@ function Home() {
     } = useSelector((state) => state.sessions);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
+    // --- Effect for TASKS ---
     useEffect(() => {
+        // Redirect if no user
         if (!user) {
             navigate('/signin');
             return;
         }
 
-        // --- Tasks ---
-        // Fetch tasks only if empty and not already loading
+        // Fetch tasks ONLY IF the tasks array is currently empty AND not already loading.
+        // This check prevents dispatching if data arrived from a previous run or another component.
         if (tasks.length === 0 && !isTaskLoading) {
+            console.log("Fetching tasks (User ID: " + user.id + ")"); // Log for verification
             dispatch(getTasks(user.id));
         }
+        // Cleanup function (optional, consider if needed)
+        // return () => { console.log("Cleaning up task effect"); };
 
-        // --- Daily Sessions ---
+    }, [user?.id, dispatch, navigate]); // <--- *** MINIMAL DEPENDENCIES ***
+    // Use user?.id if available and stable. If user object might be null initially, [user, dispatch, navigate] is also acceptable,
+    // but user.id is slightly better if it exists when user is defined.
+    // REMOVED tasks.length and isTaskLoading from dependencies.
+
+    // --- Effect for DAILY SESSIONS ---
+    useEffect(() => {
+        if (!user) return;
         const today = format(new Date(), 'yyyy-MM-dd');
-        // Fetch or create daily sessions only if empty and not already loading
         if (dailySessions.length === 0 && !isDailySessionsLoading) {
+            console.log("Fetching or creating daily sessions...");
             // Try fetching first
             dispatch(getSessionsByDate(today))
                 .unwrap()
@@ -87,23 +99,18 @@ function Home() {
                     }
                 });
         }
+    }, [user, dispatch, dailySessions.length, isDailySessionsLoading]); // Dependencies specific to daily sessions
 
-        // --- Ranged Sessions ---
-        // Fetch ranged sessions only if empty and not already loading
+    // --- Effect for RANGED SESSIONS ---
+    useEffect(() => {
+        if (!user) return;
         if (rangedSessions.length === 0 && !isRangeLoading) {
+            console.log("Fetching ranged sessions...");
             const endDateRange = format(new Date(), 'yyyy-MM-dd');
             const startDateRange = format(subDays(new Date(), 29), 'yyyy-MM-dd');
             dispatch(getSessionsByRange({ startDate: startDateRange, endDate: endDateRange }));
         }
-
-        // Dependency array includes user, dispatch, navigate and the data lengths + loading states
-        // This ensures the effect runs only when these specific values change, preventing infinite loops
-    }, [
-        user, navigate, dispatch,
-        tasks.length, isTaskLoading,
-        dailySessions.length, isDailySessionsLoading,
-        rangedSessions.length, isRangeLoading
-    ]);
+    }, [user, dispatch, rangedSessions.length, isRangeLoading]); // Dependencies specific to ranged sessions
 
 
     if (!user) {
@@ -162,8 +169,8 @@ function Home() {
                     {/* Task Management */}
                     <section className="card-container">
                         <h2 className="text-xl font-medium text-on-surface-variant dark:text-dark-on-surface-variant mb-5">Manage Your Tasks</h2>
-                        {/* TaskControl fetches its own data, potentially redundantly - consider passing tasks as prop if already fetched here */}
-                        <TaskControl />
+                        {/* Pass tasks prop to TaskControl to prevent redundant API calls */}
+                        <TaskControl tasks={tasks} />
                     </section>
 
                     {/* Today's Sessions List/Table */}

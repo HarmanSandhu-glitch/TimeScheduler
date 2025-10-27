@@ -24,7 +24,7 @@ const priorityColors = {
 };
 // --- End Material You Priority Colors ---
 
-function TaskControl() {
+function TaskControl({ tasks = [] }) {
   const [taskFormData, setTaskFormData] = useState({
     taskName: '',
     taskDescription: '',
@@ -40,20 +40,9 @@ function TaskControl() {
 
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { tasks, isLoading, isError, message } = useSelector(
+  const { isLoading, isError, message } = useSelector(
     (state) => state.tasks
   );
-
-   // Fetch tasks on mount if user exists
-   useEffect(() => {
-    if (user) {
-        // Debounce or ensure this doesn't run excessively if user changes often
-        dispatch(getTasks(user.id));
-    }
-     // Optional: Cleanup reset if needed when component unmounts
-     // return () => { dispatch(reset()); };
-   }, [user, dispatch]); // Only re-run if user changes
-
 
    // Handle potential errors (e.g., display a toast notification)
    useEffect(() => {
