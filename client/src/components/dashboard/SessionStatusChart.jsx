@@ -1,6 +1,7 @@
-import React, { useState } from 'react'; // Import useState for hover effect
+import React, { useState, useMemo } from 'react'; // Import useState for hover effect
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, Text, Sector } from 'recharts'; // Import Sector
 import { PRIORITY_COLORS } from '../../constants/app.constants';
+import { useSelector } from 'react-redux';
 
 // Define a color palette for tasks + a color for 'Completed'
 const TASK_CHART_COLORS_LIGHT = [
@@ -61,14 +62,22 @@ const renderActiveShape = (props) => {
 
 
 const SessionStatusChart = ({ dailySessions = [], tasks = [] }) => {
-  const isDarkMode = document.documentElement.classList.contains('dark');
-  const colorPalette = isDarkMode ? TASK_CHART_COLORS_DARK : TASK_CHART_COLORS_LIGHT;
-  const completedColor = isDarkMode ? COMPLETED_COLOR_DARK : COMPLETED_COLOR_LIGHT;
-  const axisTextColor = isDarkMode ? '#CAC4D0' : '#49454E'; // For active shape label
-  const completedTextColor = isDarkMode ? COMPLETED_TEXT_COLOR_DARK : COMPLETED_TEXT_COLOR_LIGHT;
-
+  // Use a stable way to detect dark mode from localStorage or system preference
+  const [isDarkMode] = useState(() => {
+    const stored = localStorage.getItem('theme');
+    if (stored) return stored === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
   const [activeIndex, setActiveIndex] = useState(null); // State for active segment
+
+  // Memoize colors to prevent recalculation
+  const { colorPalette, completedColor, axisTextColor, completedTextColor } = useMemo(() => ({
+    colorPalette: isDarkMode ? TASK_CHART_COLORS_DARK : TASK_CHART_COLORS_LIGHT,
+    completedColor: isDarkMode ? COMPLETED_COLOR_DARK : COMPLETED_COLOR_LIGHT,
+    axisTextColor: isDarkMode ? '#CAC4D0' : '#49454E',
+    completedTextColor: isDarkMode ? COMPLETED_TEXT_COLOR_DARK : COMPLETED_TEXT_COLOR_LIGHT,
+  }), [isDarkMode]);
 
   const assignedSessions = dailySessions.filter(session => session.sessionTask);
 

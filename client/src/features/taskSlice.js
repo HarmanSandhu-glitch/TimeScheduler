@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3333/api/tasks/';
+const API_URL = `${import.meta.env.VITE_API_BASE_URL}/api/tasks/`;
 
 const getAuthHeader = (thunkAPI) => {
     const token = thunkAPI.getState().auth.token;

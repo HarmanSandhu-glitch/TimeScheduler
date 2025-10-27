@@ -34,27 +34,31 @@ function Home() {
     useEffect(() => {
         if (!user) {
             navigate('/signin');
-        } else {
-            if (tasks.length === 0) {
-                dispatch(getTasks(user.id));
-            }
-            const today = format(new Date(), 'yyyy-MM-dd');
+            return;
+        }
+
+        // Fetch tasks only once
+        if (tasks.length === 0) {
+            dispatch(getTasks(user.id));
+        }
+
+        // Fetch today's sessions only once
+        const today = format(new Date(), 'yyyy-MM-dd');
+        if (dailySessions.length === 0) {
             dispatch(createDailySessions({ sessionDate: today }))
                 .unwrap()
-                .then(() => {
-                    if (dailySessions.length === 0 || (dailySessions[0] && format(new Date(dailySessions[0].sessionDate), 'yyyy-MM-dd') !== today)) {
-                        dispatch(getSessionsByDate(today));
-                    }
-                })
+                .then(() => dispatch(getSessionsByDate(today)))
                 .catch(err => console.error("Failed to ensure/fetch daily sessions:", err));
-
-            if (rangedSessions.length === 0) {
-                const endDateRange = format(new Date(), 'yyyy-MM-dd');
-                const startDateRange = format(subDays(new Date(), 29), 'yyyy-MM-dd'); // Fetch 30 days for both charts
-                dispatch(getSessionsByRange({ startDate: startDateRange, endDate: endDateRange }));
-            }
         }
-    }, [user, dispatch, navigate, tasks.length, dailySessions, rangedSessions.length]);
+
+        // Fetch ranged sessions only once
+        if (rangedSessions.length === 0) {
+            const endDateRange = format(new Date(), 'yyyy-MM-dd');
+            const startDateRange = format(subDays(new Date(), 29), 'yyyy-MM-dd');
+            dispatch(getSessionsByRange({ startDate: startDateRange, endDate: endDateRange }));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, navigate]); // Only depend on user and navigate
 
 
     if (!user) {

@@ -17,7 +17,6 @@ connectDB();
 
 // Middleware
 app.use(cors({
-    origin: config.CORS_ORIGIN,
     credentials: true,
 }));
 app.use(express.json());
@@ -30,7 +29,7 @@ if (config.NODE_ENV === 'development') {
 
 // Health check endpoint
 app.get('/', (req, res) => {
-    res.json({ 
+    res.json({
         message: 'TimeScheduler API Server',
         version: '1.0.0',
         status: 'running',

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label } from 'recharts';
 import { format, subDays } from 'date-fns'; // Use date-fns again
 
@@ -44,16 +44,22 @@ const processMonthlyData = (sessions) => {
 };
 
 const MonthlyCompletionChart = ({ sessionsData = [], isLoading }) => {
-    // Check dark mode
-    const isDarkMode = document.documentElement.classList.contains('dark');
+    // Use localStorage to get theme preference - stable and doesn't cause re-renders
+    const isDarkMode = useMemo(() => {
+        const stored = localStorage.getItem('theme');
+        if (stored) return stored === 'dark';
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }, []); // Empty deps - only calculate once
 
-    // Define colors
-    const axisTickColor = isDarkMode ? '#CAC4D0' : '#49454E';
-    const axisLineColor = isDarkMode ? '#938F99' : '#79747E';
-    const gridColor = isDarkMode ? "#49454E" : "#E7E0EC";
-    const secondaryColor = isDarkMode ? '#CCC2DC' : '#625B71'; // Theme secondary color
+    // Define colors based on dark mode - memoized to prevent recalculation
+    const colors = useMemo(() => ({
+        axisTickColor: isDarkMode ? '#CAC4D0' : '#49454E',
+        axisLineColor: isDarkMode ? '#938F99' : '#79747E',
+        gridColor: isDarkMode ? "#49454E" : "#E7E0EC",
+        secondaryColor: isDarkMode ? '#CCC2DC' : '#625B71',
+    }), [isDarkMode]);
 
-    const chartData = processMonthlyData(sessionsData || []);
+    const chartData = useMemo(() => processMonthlyData(sessionsData || []), [sessionsData]);
 
     // Custom Tooltip
     const CustomTooltip = ({ active, payload, label }) => {
@@ -100,10 +106,10 @@ const MonthlyCompletionChart = ({ sessionsData = [], isLoading }) => {
                                 domain={[0, 100]}
                                 tickFormatter={(value) => `${value}%`}
                             >
-                                <Label value="Completion %" angle={-90} position="insideLeft" style={{ textAnchor: 'middle', fill: axisTickColor, fontSize: '11px' }} />
+                                <Label value="Completion %" angle={-90} position="insideLeft" style={{ textAnchor: 'middle', fill: colors.axisTickColor, fontSize: '11px' }} />
                             </YAxis>
                             <Tooltip content={<CustomTooltip />} cursor={{ fill: isDarkMode ? 'rgba(202, 196, 208, 0.1)' : 'rgba(73, 69, 78, 0.1)' }} />
-                            <Bar dataKey="completionRate" fill={secondaryColor} radius={[4, 4, 0, 0]} barSize={10} /> {/* Thinner bars */}
+                            <Bar dataKey="completionRate" fill={colors.secondaryColor} radius={[4, 4, 0, 0]} barSize={10} /> {/* Thinner bars */}
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

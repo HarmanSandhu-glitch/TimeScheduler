@@ -12,10 +12,10 @@ export const config = {
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASS: process.env.SMTP_PASS,
   SMTP_FROM: process.env.SMTP_FROM || 'noreply@timescheduler.com',
-  CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  CORS_ORIGIN: 'http://localhost:5173',
   SESSION_START_TIME: process.env.SESSION_START_TIME || '00:00',
   SESSION_END_TIME: process.env.SESSION_END_TIME || '23:45',
-  SESSION_INTERVAL: parseInt(process.env.SESSION_INTERVAL) || 15, 
+  SESSION_INTERVAL: parseInt(process.env.SESSION_INTERVAL) || 15,
 };
 
 export default config;

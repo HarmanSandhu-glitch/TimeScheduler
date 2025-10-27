@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Label } from 'recharts';
 import { format, subDays } from 'date-fns'; // Make sure date-fns is installed: npm install date-fns
 
@@ -45,16 +45,22 @@ const processWeeklyData = (sessions) => {
 };
 
 const WeeklyCompletionChart = ({ sessionsData = [], isLoading }) => {
-    // Check dark mode preference (adjust based on your actual implementation if using a hook/context)
-    const isDarkMode = document.documentElement.classList.contains('dark');
+    // Use localStorage to get theme preference - stable and doesn't cause re-renders
+    const isDarkMode = useMemo(() => {
+        const stored = localStorage.getItem('theme');
+        if (stored) return stored === 'dark';
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }, []); // Empty deps - only calculate once
 
-    // Define colors based on dark mode
-    const axisTickColor = isDarkMode ? '#CAC4D0' : '#49454E'; // on-surface-variant equivalent
-    const axisLineColor = isDarkMode ? '#938F99' : '#79747E'; // outline equivalent
-    const gridColor = isDarkMode ? "#49454E" : "#E7E0EC"; // surface-variant equivalent
-    const primaryColor = isDarkMode ? '#D0BCFF' : '#6750A4'; // theme primary
+    // Define colors based on dark mode - memoized to prevent recalculation
+    const colors = useMemo(() => ({
+        axisTickColor: isDarkMode ? '#CAC4D0' : '#49454E',
+        axisLineColor: isDarkMode ? '#938F99' : '#79747E',
+        gridColor: isDarkMode ? "#49454E" : "#E7E0EC",
+        primaryColor: isDarkMode ? '#D0BCFF' : '#6750A4',
+    }), [isDarkMode]);
 
-    const chartData = processWeeklyData(sessionsData || []);
+    const chartData = useMemo(() => processWeeklyData(sessionsData || []), [sessionsData]);
 
     // Custom Tooltip with theme colors
     const CustomTooltip = ({ active, payload, label }) => {
@@ -85,26 +91,26 @@ const WeeklyCompletionChart = ({ sessionsData = [], isLoading }) => {
                 <div className="flex-grow"> {/* Chart container */}
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}> {/* Adjusted margins */}
-                            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} strokeOpacity={0.5} vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke={colors.gridColor} strokeOpacity={0.5} vertical={false} />
                             <XAxis
                                 dataKey="name" // Show day name (Mon, Tue...)
-                                tick={{ fill: axisTickColor, fontSize: 11 }}
-                                axisLine={{ stroke: axisLineColor }}
+                                tick={{ fill: colors.axisTickColor, fontSize: 11 }}
+                                axisLine={{ stroke: colors.axisLineColor }}
                                 tickLine={false}
                                 interval={0} // Ensure all day labels are shown
                             />
                             <YAxis
-                                tick={{ fill: axisTickColor, fontSize: 11 }}
+                                tick={{ fill: colors.axisTickColor, fontSize: 11 }}
                                 axisLine={false}
                                 tickLine={false}
                                 domain={[0, 100]} // Y-axis represents percentage
                                 tickFormatter={(value) => `${value}%`} // Format ticks as percentages
                             >
                                 {/* Y-axis Label */}
-                                <Label value="Completion %" angle={-90} position="insideLeft" style={{ textAnchor: 'middle', fill: axisTickColor, fontSize: '11px' }} />
+                                <Label value="Completion %" angle={-90} position="insideLeft" style={{ textAnchor: 'middle', fill: colors.axisTickColor, fontSize: '11px' }} />
                             </YAxis>
                             <Tooltip content={<CustomTooltip />} cursor={{ fill: isDarkMode ? 'rgba(202, 196, 208, 0.1)' : 'rgba(73, 69, 78, 0.1)' }} />
-                            <Bar dataKey="completionRate" fill={primaryColor} radius={[6, 6, 0, 0]} barSize={25} /> {/* Bar styling */}
+                            <Bar dataKey="completionRate" fill={colors.primaryColor} radius={[6, 6, 0, 0]} barSize={25} /> {/* Bar styling */}
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
