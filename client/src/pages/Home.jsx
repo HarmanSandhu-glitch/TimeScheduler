@@ -5,14 +5,14 @@ import TodaySessions from '../components/sessions/TodaySessions';
 import TaskControl from '../components/tasks/TaskControl';
 import { getTasks, reset as resetTasks } from '../features/taskSlice';
 import { getSessionsByDate, getSessionsByRange, reset as resetSessions, createDailySessions } from '../features/sessionSlice';
-// Charts (Ensure SessionAssignmentChart is removed/commented out)
+// Charts
 import SessionStatusChart from '../components/dashboard/SessionStatusChart';
-// import SessionAssignmentChart from '../components/dashboard/SessionAssignmentChart'; // REMOVED
 import WeeklyCompletionChart from '../components/dashboard/WeeklyCompletionChart';
 import MonthlyCompletionChart from '../components/dashboard/MonthlyCompletionChart';
 import UpcomingSession from '../components/dashboard/UpcomingSession';
 import { useNavigate } from 'react-router-dom';
 import UserProfileUpdate from '../components/profile/UserProfileUpdate';
+import LoadingSpinner from '../components/common/LoadingSpinner'; // Import LoadingSpinner
 
 // Placeholder SettingsIcon
 const SettingsIcon = () => (
@@ -27,8 +27,14 @@ function Home() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { user } = useSelector((state) => state.auth);
-    const { tasks = [] } = useSelector((state) => state.tasks);
-    const { sessions: dailySessions = [], isRangeLoading, rangedSessions = [], isLoading: isDailySessionsLoading } = useSelector((state) => state.sessions);
+    // Destructure isLoading from taskSlice state (ensure it exists in your slice)
+    const { tasks = [], isLoading: isTaskLoading } = useSelector((state) => state.tasks);
+    const {
+        sessions: dailySessions = [],
+        isRangeLoading,
+        rangedSessions = [],
+        isLoading: isDailySessionsLoading
+    } = useSelector((state) => state.sessions);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     useEffect(() => {
@@ -37,35 +43,83 @@ function Home() {
             return;
         }
 
-        // Fetch tasks only once
-        if (tasks.length === 0) {
+        // --- Tasks ---
+        // Fetch tasks only if empty and not already loading
+        if (tasks.length === 0 && !isTaskLoading) {
             dispatch(getTasks(user.id));
         }
 
-        // Fetch today's sessions only once
+        // --- Daily Sessions ---
         const today = format(new Date(), 'yyyy-MM-dd');
-        if (dailySessions.length === 0) {
-            dispatch(createDailySessions({ sessionDate: today }))
+        // Fetch or create daily sessions only if empty and not already loading
+        if (dailySessions.length === 0 && !isDailySessionsLoading) {
+            // Try fetching first
+            dispatch(getSessionsByDate(today))
                 .unwrap()
-                .then(() => dispatch(getSessionsByDate(today)))
-                .catch(err => console.error("Failed to ensure/fetch daily sessions:", err));
+                .catch(err => {
+                    // If fetch fails (e.g., 404), proceed to creation attempt
+                    console.warn("Initial fetch for today failed, attempting creation:", err.message || err);
+                    return { sessions: [] }; // Return structure indicating fetch was empty/failed
+                })
+                .then(result => {
+                    // Check if fetch returned sessions or if it failed and we need to create
+                    if (!result || result.sessions?.length === 0) {
+                        console.log("No sessions found for today, attempting to create...");
+                        dispatch(createDailySessions({ sessionDate: today }))
+                            .unwrap()
+                            .then(() => {
+                                console.log("Daily sessions potentially created, re-fetching...");
+                                // Re-fetch after successful creation attempt
+                                dispatch(getSessionsByDate(today));
+                            })
+                            .catch(createErr => {
+                                // Handle creation errors (like "already exists" which is fine)
+                                if (createErr?.toLowerCase().includes('already exist')) {
+                                    console.log("Sessions already existed, fetching them...");
+                                    // If creation failed because they exist, try fetching again
+                                    dispatch(getSessionsByDate(today));
+                                } else {
+                                    console.error("Failed to create daily sessions:", createErr.message || createErr);
+                                }
+                            });
+                    } else {
+                        console.log("Successfully fetched existing daily sessions.");
+                    }
+                });
         }
 
-        // Fetch ranged sessions only once
-        if (rangedSessions.length === 0) {
+        // --- Ranged Sessions ---
+        // Fetch ranged sessions only if empty and not already loading
+        if (rangedSessions.length === 0 && !isRangeLoading) {
             const endDateRange = format(new Date(), 'yyyy-MM-dd');
             const startDateRange = format(subDays(new Date(), 29), 'yyyy-MM-dd');
             dispatch(getSessionsByRange({ startDate: startDateRange, endDate: endDateRange }));
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, navigate]); // Only depend on user and navigate
+
+        // Dependency array includes user, dispatch, navigate and the data lengths + loading states
+        // This ensures the effect runs only when these specific values change, preventing infinite loops
+    }, [
+        user, navigate, dispatch,
+        tasks.length, isTaskLoading,
+        dailySessions.length, isDailySessionsLoading,
+        rangedSessions.length, isRangeLoading
+    ]);
 
 
     if (!user) {
-        return <div className="text-center mt-20 text-on-surface-variant dark:text-dark-on-surface-variant">Redirecting...</div>;
+        // Show a simple loading state while redirecting
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <LoadingSpinner size="lg" />
+                <p className="ml-4 text-secondary dark:text-dark-secondary">Redirecting to sign in...</p>
+            </div>
+        );
     }
 
-    const initialLoading = (isDailySessionsLoading && dailySessions.length === 0) || (tasks.length === 0 && !isDailySessionsLoading);
+    // Show loading indicator if any of the initial data fetches are in progress
+    const initialLoading = (isTaskLoading && tasks.length === 0) ||
+        (isDailySessionsLoading && dailySessions.length === 0) ||
+        (isRangeLoading && rangedSessions.length === 0);
 
     return (
         <div className="space-y-8 py-6">
@@ -82,14 +136,18 @@ function Home() {
             </header>
 
             {initialLoading ? (
-                <div className="text-center p-10 text-secondary dark:text-dark-secondary">Loading dashboard data...</div>
+                <div className="text-center p-10 flex flex-col items-center justify-center min-h-[400px]">
+                    <LoadingSpinner size="lg" />
+                    <p className="text-secondary dark:text-dark-secondary mt-4">Loading dashboard data...</p>
+                </div>
             ) : (
                 <>
                     {/* Row for Upcoming Session & Status Chart */}
                     <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Pass dailySessions AND tasks to UpcomingSession */}
                         <UpcomingSession dailySessions={dailySessions} tasks={tasks} />
-                        <div className="card-container">
-                            {/* Pass dailySessions AND tasks */}
+                        <div className="card-container"> {/* Ensure SessionStatusChart is wrapped */}
+                            {/* Pass dailySessions AND tasks to SessionStatusChart */}
                             <SessionStatusChart dailySessions={dailySessions} tasks={tasks} />
                         </div>
                     </section>
@@ -104,13 +162,15 @@ function Home() {
                     {/* Task Management */}
                     <section className="card-container">
                         <h2 className="text-xl font-medium text-on-surface-variant dark:text-dark-on-surface-variant mb-5">Manage Your Tasks</h2>
+                        {/* TaskControl fetches its own data, potentially redundantly - consider passing tasks as prop if already fetched here */}
                         <TaskControl />
                     </section>
 
                     {/* Today's Sessions List/Table */}
                     <section className="card-container">
                         <h2 className="text-xl font-medium text-on-surface-variant dark:text-dark-on-surface-variant mb-5">Today's Schedule</h2>
-                        <TodaySessions tasks={tasks} />
+                        {/* TodaySessions now relies on dailySessions fetched here */}
+                        <TodaySessions tasks={tasks} /> {/* Pass tasks for display */}
                     </section>
                 </>
             )}

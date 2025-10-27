@@ -56,7 +56,7 @@ const MonthlyCompletionChart = ({ sessionsData = [], isLoading }) => {
         axisTickColor: isDarkMode ? '#CAC4D0' : '#49454E',
         axisLineColor: isDarkMode ? '#938F99' : '#79747E',
         gridColor: isDarkMode ? "#49454E" : "#E7E0EC",
-        secondaryColor: isDarkMode ? '#CCC2DC' : '#625B71',
+        secondaryColor: isDarkMode ? '#CCC2DC' : '#625B71', // Renamed from primaryColor
     }), [isDarkMode]);
 
     const chartData = useMemo(() => processMonthlyData(sessionsData || []), [sessionsData]);
@@ -89,18 +89,19 @@ const MonthlyCompletionChart = ({ sessionsData = [], isLoading }) => {
                 <div className="flex-grow"> {/* Chart container */}
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}> {/* Adjusted margins */}
-                            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} strokeOpacity={0.5} vertical={false} />
+                            {/* FIX: Use colors.gridColor instead of gridColor */}
+                            <CartesianGrid strokeDasharray="3 3" stroke={colors.gridColor} strokeOpacity={0.5} vertical={false} />
                             <XAxis
                                 dataKey="name" // Show day of month (e.g., '1', '2')
-                                tick={{ fill: axisTickColor, fontSize: 10 }} // Smaller font for days
-                                axisLine={{ stroke: axisLineColor }}
+                                tick={{ fill: colors.axisTickColor, fontSize: 10 }} // Smaller font for days
+                                axisLine={{ stroke: colors.axisLineColor }}
                                 tickLine={false}
                                 // Adjust interval to prevent label overlap, e.g., show every 2nd or 3rd label
                                 interval={Math.floor(chartData.length / 10)} // Show roughly 10 labels
                                 tickFormatter={(value, index) => (index % 3 === 0 ? value : '')} // Example: Show every 3rd label
                             />
                             <YAxis
-                                tick={{ fill: axisTickColor, fontSize: 11 }}
+                                tick={{ fill: colors.axisTickColor, fontSize: 11 }}
                                 axisLine={false}
                                 tickLine={false}
                                 domain={[0, 100]}
@@ -109,6 +110,7 @@ const MonthlyCompletionChart = ({ sessionsData = [], isLoading }) => {
                                 <Label value="Completion %" angle={-90} position="insideLeft" style={{ textAnchor: 'middle', fill: colors.axisTickColor, fontSize: '11px' }} />
                             </YAxis>
                             <Tooltip content={<CustomTooltip />} cursor={{ fill: isDarkMode ? 'rgba(202, 196, 208, 0.1)' : 'rgba(73, 69, 78, 0.1)' }} />
+                            {/* Using secondaryColor for the bars */}
                             <Bar dataKey="completionRate" fill={colors.secondaryColor} radius={[4, 4, 0, 0]} barSize={10} /> {/* Thinner bars */}
                         </BarChart>
                     </ResponsiveContainer>
